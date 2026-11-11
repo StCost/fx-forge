@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FX Forge — pixel-art VFX sprite sheet generator</title>
+<meta name="description" content="Particle-based pixel-art VFX generator. Presets, live layer editor, palettes, sprite sheet, GIF, PNG frames and JSON export.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='3' y='0' width='2' height='8' fill='%23ff7a1f'/><rect x='0' y='3' width='8' height='2' fill='%23ff7a1f'/><rect x='3' y='3' width='2' height='2' fill='%23fff1a8'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top">
+  <div class="brand"><span class="logo"></span>FX <b>Forge</b><span class="tag">CM2D</span></div>
+  <input id="fxName" class="name" spellcheck="false" title="Effect name">
+  <div class="grp">
+    <button id="undo" title="Undo (Ctrl+Z)">↶</button>
+    <button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+  </div>
+  <button id="mutate" title="New variation (M)">✦ Mutate</button>
+  <button id="reseed" title="New random seed (R)">⟳ Reseed</button>
+  <div class="spacer"></div>
+  <div class="menu" id="fileMenu">
+    <button id="fileBtn">File ▾</button>
+    <div class="drop">
+      <button data-act="new">New effect</button>
+      <button data-act="dup">Duplicate effect</button>
+      <button data-act="save">Save to library <kbd>Ctrl+S</kbd></button>
+      <hr>
+      <button data-act="saveFile">Save project file (.fxforge)</button>
+      <button data-act="openFile">Open project file…</button>
+      <hr>
+      <button data-act="copyJson">Copy settings as JSON</button>
+      <button data-act="pasteJson">Paste settings JSON…</button>
+    </div>
+  </div>
+  <button id="help" title="Tour and shortcuts (?)">?</button>
+  <button id="exportBtn" class="accent" title="Export (E)">⇩ Export</button>
+</header>
+<main>
+  <aside id="left">
+    <div class="ph"><span>Effects</span><button id="newFx" class="sm">+ New</button></div>
+    <div class="tabs" id="libTabs"><button data-tab="presets" class="on">Presets</button><button data-tab="library">My library</button></div>
+    <input id="search" placeholder="Search effects…">
+    <div id="chips"></div>
+    <div id="cards"></div>
+  </aside>
+  <section id="center">
+    <div class="bar">
+      <span id="info"></span>
+      <div class="spacer"></div>
+      <div id="bgs" title="Preview background"></div>
+      <select id="zoom" title="Zoom"><option value="0">Fit</option><option>1</option><option>2</option><option>4</option><option>6</option><option>8</option><option>12</option></select>
+      <label class="chk" title="Show neighbouring frames faintly"><input type="checkbox" id="onion"> Onion</label>
+    </div>
+    <div id="stage"><canvas id="view"></canvas>
+      <div id="minis"><div><canvas id="mini1"></canvas><span>1x</span></div><div><canvas id="mini2"></canvas><span>2x</span></div></div>
+    </div>
+    <div id="timeline">
+      <button id="prev" title="Previous frame (←)">⏮</button>
+      <button id="play" title="Play / pause (Space)">❚❚</button>
+      <button id="next" title="Next frame (→)">⏭</button>
+      <span id="fcount"></span>
+      <div id="strip"></div>
+    </div>
+  </section>
+  <aside id="right">
+    <div class="ph"><span>Layers</span>
+      <div class="grp"><button id="lUp" class="sm" title="Move up">▲</button><button id="lDown" class="sm" title="Move down">▼</button><button id="lDup" class="sm" title="Duplicate (D)">⧉</button><button id="lDel" class="sm" title="Delete">🗑</button><button id="lAdd" class="sm">+ Add</button></div>
+    </div>
+    <div id="layers"></div>
+    <div class="tabs" id="setTabs"><button data-tab="layer" class="on">Layer settings</button><button data-tab="canvas">Canvas &amp; style</button></div>
+    <div id="settings"></div>
+  </aside>
+</main>
+
+<div id="exportModal" class="modal hidden">
+  <div class="box wide">
+    <div class="mh"><b>Export</b><button class="x" data-close>✕</button></div>
+    <div class="ecols">
+      <div class="eopts">
+        <label>Format<select id="exFormat">
+          <option value="sheet">Sprite sheet (PNG)</option>
+          <option value="gif">Animated GIF</option>
+          <option value="frames">PNG frames (ZIP)</option>
+          <option value="json">JSON metadata only</option>
+        </select></label>
+        <label class="ifsheet">Layout<select id="exLayout"><option value="grid">Grid</option><option value="row">Row</option><option value="column">Column</option></select></label>
+        <label class="ifsheet ifgrid">Columns<input type="number" id="exCols" min="1" max="64" value="0"><small>0 = auto</small></label>
+        <label class="ifsheet">Padding px<input type="number" id="exPad" min="0" max="16" value="0"></label>
+        <label>Scale<select id="exScale"><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select></label>
+        <label>Background<select id="exBg"><option value="">Transparent</option><option value="custom">Solid colour</option></select><input type="color" id="exBgColor" value="#000000"></label>
+        <label class="chk ifsheet"><input type="checkbox" id="exJson" checked> Also save JSON metadata</label>
+        <div class="esum" id="exSummary"></div>
+        <button id="exGo" class="accent big">Download</button>
+      </div>
+      <div class="eprev">
+        <div class="eimg"><canvas id="exCanvas"></canvas></div>
+        <div class="tabs" id="guideTabs"><button data-g="unity" class="on">Unity</button><button data-g="godot">Godot 4</button><button data-g="gm">GameMaker</button><button data-g="other">Other</button></div>
+        <pre id="guide"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="helpModal" class="modal hidden">
+  <div class="box">
+    <div class="mh"><b>Shortcuts</b><button class="x" data-close>✕</button></div>
+    <table class="keys">
+      <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next frame</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Mutate (new variation)</td></tr>
+      <tr><td><kbd>R</kbd></td><td>Reseed</td></tr>
+      <tr><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd></td><td>Undo / redo</td></tr>
+      <tr><td><kbd>Ctrl+S</kbd></td><td>Save to library</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Export</td></tr>
+      <tr><td><kbd>D</kbd> / <kbd>H</kbd> / <kbd>Del</kbd></td><td>Duplicate / hide / delete layer</td></tr>
+      <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+    </table>
+    <button id="startTour" class="accent">Start the guided tour</button>
+  </div>
+</div>
+
+<div id="tour" class="hidden"><div class="tb"><b id="tourTitle"></b><p id="tourText"></p><div class="tf"><span id="tourDots"></span><button id="tourSkip">Skip</button><button id="tourNext" class="accent">Next</button></div></div></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept=".fxforge,.json,application/json" hidden>
+<input type="file" id="palIn" accept="image/*,.hex,.gpl,.txt" hidden>
+
+<script src="js/engine.js"></script>
+<script src="js/palettes.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/gif.js"></script>
+<script src="js/zip.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
