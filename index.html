@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a20">
 <title>FX Forge — pixel-art VFX sprite sheet generator</title>
 <meta name="description" content="Particle-based pixel-art VFX generator. Presets, live layer editor, palettes, sprite sheet, GIF, PNG frames and JSON export.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='3' y='0' width='2' height='8' fill='%23ff7a1f'/><rect x='0' y='3' width='8' height='2' fill='%23ff7a1f'/><rect x='3' y='3' width='2' height='2' fill='%23fff1a8'/></svg>">
@@ -10,19 +11,20 @@
 </head>
 <body>
 <header id="top">
-  <div class="brand"><span class="logo"></span>FX <b>Forge</b><span class="tag">CM2D</span></div>
+  <div class="brand"><span class="logo"></span><span class="bt">FX <b>Forge</b></span></div>
   <input id="fxName" class="name" spellcheck="false" title="Effect name">
   <div class="grp">
     <button id="undo" title="Undo (Ctrl+Z)">↶</button>
     <button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button>
   </div>
-  <button id="mutate" title="New variation (M)">✦ Mutate</button>
-  <button id="reseed" title="New random seed (R)">⟳ Reseed</button>
+  <button id="mutate" class="donly" title="New variation (M)">✦ <span>Mutate</span></button>
+  <button id="reseed" class="donly" title="New random seed (R)">⟳ <span>Reseed</span></button>
   <div class="spacer"></div>
   <div class="menu" id="fileMenu">
-    <button id="fileBtn">File ▾</button>
+    <button id="fileBtn" title="File"><span class="dl">File ▾</span><span class="ml">☰</span></button>
     <div class="drop">
       <button data-act="new">New effect</button>
+      <button data-act="help" class="monly">Help &amp; tour</button>
       <button data-act="dup">Duplicate effect</button>
       <button data-act="save">Save to library <kbd>Ctrl+S</kbd></button>
       <hr>
@@ -33,8 +35,8 @@
       <button data-act="pasteJson">Paste settings JSON…</button>
     </div>
   </div>
-  <button id="help" title="Tour and shortcuts (?)">?</button>
-  <button id="exportBtn" class="accent" title="Export (E)">⇩ Export</button>
+  <button id="help" class="donly" title="Tour and shortcuts (?)">?</button>
+  <button id="exportBtn" class="accent" title="Export (E)">⇩<span class="dl"> Export</span></button>
 </header>
 <main>
   <aside id="left">
@@ -60,18 +62,27 @@
       <button id="play" title="Play / pause (Space)">❚❚</button>
       <button id="next" title="Next frame (→)">⏭</button>
       <span id="fcount"></span>
+      <button id="mMutate" class="monly" title="Mutate">✦</button>
+      <button id="mReseed" class="monly" title="Reseed">⟳</button>
       <div id="strip"></div>
     </div>
   </section>
   <aside id="right">
     <div class="ph"><span>Layers</span>
-      <div class="grp"><button id="lUp" class="sm" title="Move up">▲</button><button id="lDown" class="sm" title="Move down">▼</button><button id="lDup" class="sm" title="Duplicate (D)">⧉</button><button id="lDel" class="sm" title="Delete">🗑</button><button id="lAdd" class="sm">+ Add</button></div>
+      <div class="grp"><button id="lUp" class="sm" title="Move up">▲</button><button id="lDown" class="sm" title="Move down">▼</button><button id="lDup" class="sm" title="Duplicate (D)">Dup</button><button id="lDel" class="sm" title="Delete">🗑</button><button id="lAdd" class="sm">+ Add</button></div>
     </div>
     <div id="layers"></div>
+    <div id="mlayers"></div>
     <div class="tabs" id="setTabs"><button data-tab="layer" class="on">Layer settings</button><button data-tab="canvas">Canvas &amp; style</button></div>
     <div id="settings"></div>
   </aside>
 </main>
+<nav id="mnav">
+  <button data-pane="effects">▦<span>Effects</span></button>
+  <button data-pane="layers">☰<span>Layers</span></button>
+  <button data-pane="edit" class="on">⚙<span>Edit</span></button>
+  <button data-pane="style">◧<span>Canvas</span></button>
+</nav>
 
 <div id="exportModal" class="modal hidden">
   <div class="box wide">
@@ -92,6 +103,7 @@
         <label class="chk ifsheet"><input type="checkbox" id="exJson" checked> Also save JSON metadata</label>
         <div class="esum" id="exSummary"></div>
         <button id="exGo" class="accent big">Download</button>
+        <button id="exShare" class="big hidden">Share…</button>
       </div>
       <div class="eprev">
         <div class="eimg"><canvas id="exCanvas"></canvas></div>

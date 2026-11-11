@@ -217,30 +217,8 @@
     ]),
     P('Fireflies', 'Nature', { frames: 32, fps: 12, loop: true }, [
       L('Flies', { e: { burst: 0, rate: 4, lifetime: 2.67, lifeVar: 0 }, s: { area: 'box', w: 56, h: 56 }, m: { speed: 6 }, f: { turb: 10, turbDetail: 20 }, p: { shape: 'pixel', startSize: 1, endSize: 1, sizeCurve: 'pulse', colors: ['#f4ffb0', '#b6ff3a'], fadeIn: 30, fadeOut: 30 } })
-    ]),
-    // ---------- Wasteland (CM2D) ----------
-    P('Sand Kick', 'Wasteland', { w: 48, h: 32, frames: 10, fps: 15, paletteName: 'CM2D Wasteland' }, [
-      L('Sand', { e: { burst: 14, lifetime: 0.6 }, s: { y: 85, x: 40 }, m: { speed: 60, dir: 60, spread: 50, gravity: 90, drag: 2 }, p: { shape: 'pixel', startSize: 1, endSize: 1, colors: C.dust } }),
-      L('Cloud', { e: { burst: 6, lifetime: 0.8 }, s: { y: 85, x: 40 }, m: { speed: 20, dir: 70, spread: 40, drag: 2 }, p: { startSize: 4, endSize: 8, sizeCurve: 'fast', colors: C.dust, fadeOut: 50 } })
-    ]),
-    P('Tire Dust', 'Wasteland', { w: 64, h: 32, frames: 16, fps: 12, loop: true, paletteName: 'CM2D Wasteland' }, [
-      L('Trail', { e: { burst: 0, rate: 16, lifetime: 1 }, s: { x: 85, y: 75, area: 'disc', w: 6 }, m: { speed: 40, dir: 280, spread: 30, drag: 1.5, gravity: -6 }, f: { turb: 8 }, p: { startSize: 4, endSize: 10, sizeCurve: 'fast', colors: C.dust, fadeOut: 60 } })
-    ]),
-    P('Wreck Burning', 'Wasteland', { w: 48, h: 64, frames: 24, fps: 12, loop: true }, [
-      L('Smoke', { e: { burst: 0, rate: 8, lifetime: 2 }, s: { y: 60, area: 'disc', w: 10 }, m: { speed: 18, spread: 20, gravity: -6, wind: 4 }, f: { turb: 10 }, p: { startSize: 5, endSize: 14, sizeCurve: 'fast', colors: C.darksmoke, fadeOut: 50 } }),
-      L('Fire', { e: { burst: 0, rate: 24, lifetime: 0.6 }, s: { y: 80, area: 'line', w: 18 }, m: { speed: 24, spread: 20, gravity: -26 }, f: { turb: 8 }, p: { startSize: 7, endSize: 1, colors: C.fire } })
-    ]),
-    P('Acid Spit', 'Wasteland', { w: 64, h: 32, frames: 12, fps: 15 }, [
-      L('Glob', { e: { burst: 12, lifetime: 0.6 }, s: { x: 15 }, m: { speed: 120, dir: 90, spread: 18, gravity: 60, drag: 0.5 }, p: { startSize: 4, endSize: 2, colors: C.acid } }),
-      L('Mist', { e: { burst: 8, lifetime: 0.7 }, s: { x: 15 }, m: { speed: 40, dir: 90, spread: 50, drag: 2 }, p: { shape: 'pixel', startSize: 1, endSize: 1, colors: ['#f4ffb0', '#7bd641'] } })
-    ]),
-    P('Shell Casing Smoke', 'Wasteland', { w: 32, h: 32, frames: 12, fps: 12 }, [
-      L('Wisp', { e: { burst: 0, rate: 10, lifetime: 0.9, emitFor: 50 }, s: { y: 70 }, m: { speed: 18, dir: 0, spread: 20 }, f: { turb: 14 }, p: { startSize: 2, endSize: 5, colors: ['#d8d0c8', '#8f8580'], opacity: 70, fadeOut: 60 } })
-    ]),
-    P('Engine Exhaust', 'Wasteland', { w: 48, h: 32, frames: 12, fps: 15, loop: true }, [
-      L('Puffs', { e: { burst: 0, rate: 14, lifetime: 0.8 }, s: { x: 85, y: 60 }, m: { speed: 40, dir: 270, spread: 25, drag: 2, gravity: -10 }, f: { turb: 10 }, p: { startSize: 2, endSize: 7, sizeCurve: 'fast', colors: ['#6e6460', '#45403e', '#2b2626'], fadeOut: 50 } })
     ])
   ];
-  const CATEGORIES = ['Explosions', 'Fire', 'Smoke', 'Magic', 'Impacts', 'Energy', 'Pickups', 'Nature', 'Wasteland'];
+  const CATEGORIES = ['Explosions', 'Fire', 'Smoke', 'Magic', 'Impacts', 'Energy', 'Pickups', 'Nature'];
   G.FXPresets = { list, CATEGORIES, newLayer: base, newEffect: fxBase };
 })(window);

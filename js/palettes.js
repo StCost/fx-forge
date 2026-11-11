@@ -8,7 +8,6 @@ window.FXPalettes = {
   'Game Boy': ['#0f380f','#306230','#8bac0f','#9bbc0f'],
   'CGA': ['#000000','#55ffff','#ff55ff','#ffffff'],
   '1-bit': ['#000000','#ffffff'],
-  'CM2D Wasteland': ['#1b1410','#3b2a20','#6b4a32','#a0703f','#d2a15c','#efd29a','#fff4d6','#5a5f4a','#8f9a6a','#c2402a','#ff7a1f','#ffd23f','#3a4a5a','#7fa6b8'],
   'Fire ramp': ['#2a0f0f','#5a1e1e','#a3301a','#e0561a','#ff8c1a','#ffc23a','#fff1a8','#ffffff'],
   'Ice ramp': ['#0e1a33','#1f3a6b','#2f6fb3','#5fb0ff','#a8e6ff','#e6fbff','#ffffff'],
   'Toxic ramp': ['#121a0e','#2a4a1e','#3f8f3a','#7bd641','#c8ff6e','#f4ffd0']

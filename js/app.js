@@ -70,7 +70,8 @@
   function draw() {
     const view = $('#view'), stage = $('#stage');
     const W = fx.w, H = fx.h;
-    let s = zoom || Math.max(1, Math.floor(Math.min((stage.clientWidth - 40) / W, (stage.clientHeight - 40) / H)));
+    const mg = stage.clientWidth < 600 || stage.clientHeight < 400 ? 12 : 40;
+    let s = zoom || Math.max(1, Math.floor(Math.min((stage.clientWidth - mg) / W, (stage.clientHeight - mg) / H)));
     view.width = W * s; view.height = H * s;
     const ctx = view.getContext('2d'); ctx.imageSmoothingEnabled = false;
     bgFill(ctx, view.width, view.height, s);
@@ -124,6 +125,7 @@
       const f = normalize(clone(e)); const r = new E.Renderer(f); r.prepare();
       c.width = f.w; c.height = f.h; c._r = r; c._f = f;
       c.getContext('2d').putImageData(r.frame(Math.floor(f.frames * 0.4)), 0, 0);
+      if (c.parentNode && c.parentNode.classList.contains('sel')) animateCard(c, true);
     }
     if (thumbQ.length) setTimeout(drainThumbs, 0);
   }
@@ -154,7 +156,7 @@
         d.appendChild(del);
       }
       d.onclick = () => { selPreset = it.key; setFx(it.e); lastSnap = snapshot(); autosave(); buildCards(); toast('Loaded ' + it.e.name); };
-      d.onmouseenter = () => animateCard(c, true); d.onmouseleave = () => animateCard(c, false);
+      d.onmouseenter = () => animateCard(c, true); d.onmouseleave = () => { if (!d.classList.contains('sel')) animateCard(c, false); };
       box.appendChild(d); thumb(c, it.e);
     }
   }
@@ -174,9 +176,16 @@
         inp.onblur = done; inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = L.name; inp.blur(); } };
       };
       const ct = document.createElement('span'); ct.className = 'ct'; ct.textContent = (L.emission.burst + Math.round(L.emission.rate * L.emission.emitFor / 100 * fx.frames / fx.fps)) + '×';
-      d.append(eye, sw, nm, ct);
+      const ren = document.createElement('button'); ren.className = 'ren'; ren.textContent = '✎'; ren.title = 'Rename';
+      ren.onclick = ev => { ev.stopPropagation(); nm.ondblclick(); };
+      d.append(eye, sw, nm, ct, ren);
       d.onclick = () => { if (selLayer !== i) { selLayer = i; buildLayers(); buildSettings(); } };
       box.appendChild(d);
+    });
+    const ml = $('#mlayers'); ml.innerHTML = '';
+    fx.layers.forEach((L, i) => {
+      const b = document.createElement('button'); b.textContent = (L.visible ? '' : '◌ ') + L.name; if (i === selLayer) b.className = 'on';
+      b.onclick = () => { selLayer = i; buildLayers(); buildSettings(); }; ml.appendChild(b);
     });
     const none = !fx.layers.length;
     ['#lUp', '#lDown', '#lDup', '#lDel'].forEach(s => $(s).disabled = none);
@@ -336,6 +345,7 @@
   }
   function fileAct(a) {
     $('#fileMenu').classList.remove('open');
+    if (a === 'help') { $('#helpModal').classList.remove('hidden'); return; }
     if (a === 'new') { const n = PR.newEffect(); n.name = 'New effect'; n.layers = [PR.newLayer()]; n.layers[0].name = 'Particles'; setFx(n); lastSnap = snapshot(); autosave(); }
     if (a === 'dup') { fx.name += ' copy'; change(true); toast('Duplicated — save to keep it'); }
     if (a === 'save') saveToLibrary();
@@ -436,16 +446,17 @@
     $('#guideTabs').style.display = o.format === 'sheet' || o.format === 'json' ? '' : 'none';
   }
   const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
-  async function doExport() {
-    const o = exOpts(), n = slug(fx.name);
+  async function buildExport() {
+    const o = exOpts(), n = slug(fx.name), out = [];
+    const json = () => ({ blob: new Blob([JSON.stringify(metaJson(o, n + '.png'), null, 1)], { type: 'application/json' }), name: n + '.json' });
     if (o.format === 'sheet') {
-      const { canvas } = renderSheet(o); download(await toBlob(canvas), n + '.png');
-      if (o.json) setTimeout(() => download(new Blob([JSON.stringify(metaJson(o, n + '.png'), null, 1)], { type: 'application/json' }), n + '.json'), 300);
+      const { canvas } = renderSheet(o); out.push({ blob: await toBlob(canvas), name: n + '.png' });
+      if (o.json) out.push(json());
     } else if (o.format === 'json') {
-      download(new Blob([JSON.stringify(metaJson(o, n + '.png'), null, 1)], { type: 'application/json' }), n + '.json');
+      out.push(json());
     } else if (o.format === 'gif') {
       const bytes = window.FXGif.encode(renderer.all(), { scale: o.scale, background: o.bg || null, delay: Math.max(2, Math.round(100 / fx.fps)), loop: true });
-      download(new Blob([bytes], { type: 'image/gif' }), n + '.gif');
+      out.push({ blob: new Blob([bytes], { type: 'image/gif' }), name: n + '.gif' });
     } else {
       const files = [], t = document.createElement('canvas'); t.width = fx.w * o.scale; t.height = fx.h * o.scale;
       const tx = t.getContext('2d'); tx.imageSmoothingEnabled = false;
@@ -458,17 +469,28 @@
       }
       const meta = { name: fx.name, frameWidth: t.width, frameHeight: t.height, frameCount: fx.frames, fps: fx.fps, loop: fx.loop, frames: files.map(f => ({ file: f.name, duration: Math.round(1000 / fx.fps) })) };
       files.push({ name: n + '.json', data: JSON.stringify(meta, null, 1) });
-      download(window.FXZip.zip(files), n + '_frames.zip');
+      out.push({ blob: window.FXZip.zip(files), name: n + '_frames.zip' });
     }
+    return out;
+  }
+  async function doExport() {
+    const out = await buildExport();
+    out.forEach((f, i) => setTimeout(() => download(f.blob, f.name), i * 300));
     toast('Exported');
   }
-  function openExport() { $('#exportModal').classList.remove('hidden'); updateExport(); }
+  const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File([new Uint8Array(1)], 'a.png', { type: 'image/png' })] })); } catch (e) { return false; } };
+  async function doShare() {
+    const out = await buildExport();
+    const files = out.map(f => new File([f.blob], f.name, { type: f.blob.type || 'application/octet-stream' }));
+    try { await navigator.share({ files, title: fx.name }); } catch (e) { if (e && e.name !== 'AbortError') { toast('Sharing failed, downloading instead'); doExport(); } }
+  }
+  function openExport() { $('#exportModal').classList.remove('hidden'); $('#exShare').classList.toggle('hidden', !canShareFiles()); updateExport(); }
 
   // ---------- tour ----------
   const TOUR = [
-    ['#cards', 'Start with an effect', 'Pick any preset. Each one is a fully editable starting point. Hover a card to preview it.'],
-    ['#layers', 'Layers', 'Effects are stacks of particle layers. Toggle, rename (double-click), reorder, duplicate or add layers.'],
-    ['#settings', 'Tweak live', 'Every slider updates the preview instantly. Canvas & style holds size, frames, FPS, loop, palette, dithering and outline.'],
+    ['#cards', 'Start with an effect', 'Pick any preset. Each one is a fully editable starting point. Hover (or tap) a card to preview it.', 'effects'],
+    ['#layers', 'Layers', 'Effects are stacks of particle layers. Toggle, rename (double-click or ✎), reorder, duplicate or add layers.', 'layers'],
+    ['#settings', 'Tweak live', 'Every slider updates the preview instantly. Canvas & style holds size, frames, FPS, loop, palette, dithering and outline.', 'edit'],
     ['#mutate', 'Mutate', 'One click (or M) makes a new variation. Reseed (R) keeps the settings but reshuffles the particles.'],
     ['#exportBtn', 'Export', 'Sprite sheets (grid, row or column, padding, scale), GIF, PNG frames and JSON, with slicing settings for Unity, Godot 4 and GameMaker.']
   ];
@@ -476,7 +498,9 @@
   function tourShow() {
     document.querySelectorAll('.tour-hi').forEach(e => e.classList.remove('tour-hi'));
     if (tourI >= TOUR.length) { $('#tour').classList.add('hidden'); try { localStorage.setItem(LS_TOUR, '1'); } catch (e) { } return; }
-    const [sel, t, p] = TOUR[tourI]; const el = $(sel); el.classList.add('tour-hi');
+    const [sel, t, p, pane] = TOUR[tourI];
+    if (isMobile() && pane) setPane(pane);
+    const el = $(isMobile() && sel === '#mutate' ? '#mMutate' : sel); el.classList.add('tour-hi');
     $('#tour').classList.remove('hidden'); $('#tourTitle').textContent = t; $('#tourText').textContent = p;
     $('#tourDots').textContent = TOUR.map((_, i) => i === tourI ? '●' : '·').join('');
     $('#tourNext').textContent = tourI === TOUR.length - 1 ? 'Done' : 'Next';
@@ -502,7 +526,23 @@
     }
   }
 
+  // ---------- mobile panes ----------
+  const isMobile = () => getComputedStyle($('#mnav')).display !== 'none';
+  function setPane(p) {
+    $('main').dataset.pane = p;
+    document.querySelectorAll('#mnav button').forEach(b => b.classList.toggle('on', b.dataset.pane === p));
+    if (p === 'edit' || p === 'style') {
+      const t = p === 'edit' ? 'layer' : 'canvas';
+      if (setTab !== t) { setTab = t; document.querySelectorAll('#setTabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === t)); buildSettings(); }
+    }
+    draw();
+  }
+  document.querySelectorAll('#mnav button').forEach(b => b.onclick = () => setPane(b.dataset.pane));
+  $('main').dataset.pane = 'edit';
+  if (window.ResizeObserver) new ResizeObserver(() => fx && draw()).observe($('#stage'));
+
   // ---------- wiring ----------
+  $('#mMutate').onclick = () => mutate(); $('#mReseed').onclick = reseed;
   $('#undo').onclick = undo; $('#redo').onclick = redo; $('#mutate').onclick = mutate; $('#reseed').onclick = reseed;
   $('#fileBtn').onclick = e => { e.stopPropagation(); $('#fileMenu').classList.toggle('open'); };
   document.addEventListener('click', () => $('#fileMenu').classList.remove('open'));
@@ -514,7 +554,7 @@
   document.querySelectorAll('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) m.classList.add('hidden'); }));
   ['#exFormat', '#exLayout', '#exCols', '#exPad', '#exScale', '#exBg', '#exBgColor', '#exJson'].forEach(s => $(s).addEventListener('input', updateExport));
   document.querySelectorAll('#guideTabs button').forEach(b => b.onclick = () => { guideTab = b.dataset.g; document.querySelectorAll('#guideTabs button').forEach(x => x.classList.toggle('on', x === b)); updateExport(); });
-  $('#exGo').onclick = doExport;
+  $('#exGo').onclick = doExport; $('#exShare').onclick = doShare;
   $('#fxName').onchange = () => { fx.name = $('#fxName').value.trim() || 'Untitled'; commit(); };
   $('#search').oninput = buildCards;
   document.querySelectorAll('#libTabs button').forEach(b => b.onclick = () => { libTab = b.dataset.tab; document.querySelectorAll('#libTabs button').forEach(x => x.classList.toggle('on', x === b)); buildChips(); buildCards(); });
